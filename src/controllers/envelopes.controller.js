@@ -1,5 +1,17 @@
 import { Envelope, Transaction } from '../models/envelope.model.js';
-import { mongoose } from '../db.js'; 
+import { mongoose } from '../db.js';
+
+/**
+ * Obtener el siguiente ID para un sobre
+ */
+const getNextSequenceValue = async (sequenceName) => {
+  const counter = await mongoose.connection.db.collection('counters').findOneAndUpdate(
+    { _id: sequenceName },  // Encuentra el documento del contador de sobres
+    { $inc: { seq: 1 } },    // Incrementa el contador
+    { returnDocument: 'after', upsert: true }  // Si no existe, lo crea
+  );
+  return counter.value.seq;  // Devuelve el nuevo valor de ID
+};
 /**
  * Obtener todos los sobres (envelopes)
  */
@@ -38,11 +50,18 @@ export const getEnvelopeById = async (id) => {
  */
 export const createEnvelope = async (req, res) => {
   const { name, limit } = req.body;
+  
   try {
-    const newEnvelope = new Envelope({ name, limit, spent: 0 });
+    // Obtener el siguiente ID
+    const newId = await getNextSequenceValue('envelopeId');
+    
+    // Crear el nuevo sobre con el ID numérico
+    const newEnvelope = new Envelope({ _id: newId, name, limit, spent: 0 });
     await newEnvelope.save();
+
     res.status(201).json(newEnvelope);
   } catch (error) {
+    console.error('Error al crear el sobre:', error);
     res.status(500).json({ message: 'Error al crear el sobre' });
   }
 };
