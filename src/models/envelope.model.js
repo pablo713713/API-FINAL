@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { getNextSequenceValue } from '../counter/counter.model.js';  // Importar la función desde la carpeta 'counter'
 
 // Definir el esquema para los sobres
 const envelopeSchema = new mongoose.Schema({
@@ -14,6 +15,22 @@ const transactionSchema = new mongoose.Schema({
   amount: { type: Number, required: true },
   description: { type: String, required: true },
   date: { type: Date, default: Date.now }
+});
+
+// Hook para crear un sobre antes de guardar (asignar un ID secuencial)
+envelopeSchema.pre('save', async function(next) {
+  if (this.isNew) {
+    this._id = await getNextSequenceValue('envelopeId');  // Asignar el ID secuencial
+  }
+  next();
+});
+
+// Hook para crear una transacción antes de guardar (asignar un ID secuencial)
+transactionSchema.pre('save', async function(next) {
+  if (this.isNew) {
+    this._id = await getNextSequenceValue('transactionId');  // Asignar el ID secuencial
+  }
+  next();
 });
 
 export const Envelope = mongoose.model('Envelope', envelopeSchema);

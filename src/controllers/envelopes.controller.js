@@ -12,6 +12,7 @@ const getNextSequenceValue = async (sequenceName) => {
   );
   return counter.value.seq;  // Devuelve el nuevo valor de ID
 };
+
 /**
  * Obtener todos los sobres (envelopes)
  */
@@ -31,17 +32,21 @@ export const getAllEnvelopes = async (req, res) => {
   }
 };
 
-
 /**
  * Obtener un sobre específico por su ID
  */
-export const getEnvelopeById = async (id) => {
+export const getEnvelopeById = async (req, res) => {
+  const { id } = req.params;
+
   try {
     const envelope = await Envelope.findById(id);
-    if (!envelope) throw new Error(`Sobre con ID ${id} no encontrado`);
-    return envelope;
+    if (!envelope) {
+      return res.status(404).json({ message: `Sobre con ID ${id} no encontrado` });
+    }
+    res.status(200).json(envelope);
   } catch (error) {
-    throw new Error('Error al obtener el sobre');
+    console.error('Error en getEnvelopeById:', error);
+    res.status(500).json({ message: 'Error al obtener el sobre' });
   }
 };
 
@@ -69,12 +74,18 @@ export const createEnvelope = async (req, res) => {
 /**
  * Obtener las transacciones para un sobre
  */
-export const getTransactionsForEnvelope = async (envelopeId) => {
+export const getTransactionsForEnvelope = async (req, res) => {
+  const { id } = req.params;
+
   try {
-    const transactions = await Transaction.find({ envelope_id: envelopeId });
-    return transactions.length === 0 ? [] : transactions;
+    const transactions = await Transaction.find({ envelope_id: id });
+    if (transactions.length === 0) {
+      return res.status(404).json({ message: `No hay transacciones para el sobre con ID ${id}` });
+    }
+    res.status(200).json({ transactions });
   } catch (error) {
-    throw new Error('Error al obtener las transacciones para el sobre');
+    console.error('Error al obtener las transacciones para el sobre:', error);
+    res.status(500).json({ message: 'Error al obtener las transacciones para el sobre' });
   }
 };
 
@@ -106,6 +117,7 @@ export const makeTransaction = async (req, res) => {
 
     res.status(201).json(newTransaction);
   } catch (error) {
+    console.error('Error al realizar la transacción:', error);
     res.status(500).json({ message: 'Error al realizar la transacción' });
   }
 };
